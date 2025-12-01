@@ -1,0 +1,57 @@
+# Docker Compose configuration for LangBot
+# For Kubernetes deployment, see kubernetes.yaml and README_K8S.md
+# version: "3"
+
+services:
+
+  langbot_plugin_runtime:
+    image: rockchin/langbot:latest
+    container_name: langbot_plugin_runtime
+    platform: linux/amd64 # For Apple Silicon compatibility
+    volumes:
+      - ./data/plugins:/app/data/plugins
+    ports:
+      - 5401:5401
+    restart: on-failure
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["uv", "run", "-m", "langbot_plugin.cli.__init__", "rt"]
+    networks:
+      - langbot_network
+
+  langbot:
+    image: rockchin/langbot:latest
+    container_name: langbot
+    platform: linux/amd64 # For Apple Silicon compatibility
+    volumes:
+      - ./data:/app/data
+      - ./plugins:/app/plugins
+    restart: on-failure
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - 5300:5300  # For web ui and webhook callback
+      - 2280-2285:2280-2285  # For platform reverse connection
+    networks:
+      - langbot_network
+
+      
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    # Utiliser le token (configuration gérée dans le dashboard)
+    command:
+      - tunnel
+      - --no-autoupdate
+      - run
+      - --token
+      - ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    networks:
+      - langbot_network
+      
+networks:
+  langbot_network:
+    driver: bridge
