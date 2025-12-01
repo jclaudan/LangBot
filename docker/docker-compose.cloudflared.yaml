@@ -38,7 +38,7 @@ services:
       
   cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: cloudflared
+    container_name: cloudflared-langbot
     restart: unless-stopped
     # Utiliser le token (configuration gérée dans le dashboard)
     command:
